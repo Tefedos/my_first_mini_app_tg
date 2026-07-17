@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model TelegramUser {
+  id           String               @id @default(cuid())
+  telegramId   BigInt               @unique
+  username     String?
+  firstName    String?
+  lastName     String?
+  languageCode String?
+  isPremium    Boolean              @default(false)
+  photoUrl     String?
+  lastSeenAt   DateTime             @default(now())
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  memberships  TelegramChatMember[]
+  sessions     MiniAppSession[]
+  users        User[]
+
+  @@map("telegram_users")
+}
+
+model TelegramChat {
+  id         String               @id @default(cuid())
+  telegramId BigInt               @unique
+  type       String
+  title      String?
+  username   String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  members    TelegramChatMember[]
+
+  @@map("telegram_chats")
+}
+
+model TelegramChatMember {
+  id        String       @id @default(cuid())
+  userId    String
+  chatId    String
+  role      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  user      TelegramUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat      TelegramChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chatId])
+  @@map("telegram_chat_members")
+}
+
+model MiniAppSession {
+  id             String        @id @default(cuid())
+  userId         String?
+  telegramUserId BigInt?
+  chatType       String?
+  chatInstance   String?
+  initDataHash   String        @unique
+  authDate       DateTime
+  createdAt      DateTime      @default(now())
+  user           TelegramUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([telegramUserId])
+  @@map("mini_app_sessions")
+}
+
+model User {
+  id         Int           @id @default(autoincrement())
+  name       String
+  accountId  String?       @map("account_id")
+  avatarId   Int?          @map("avatar_id")
+  loveHeroId Int?          @map("love_hero_id")
+  lovePosId  Int?          @map("love_pos_id")
+  coins      Int           @default(0)
+  account    TelegramUser? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  avatar     Avatar?       @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+  loveHero   Hero?         @relation(fields: [loveHeroId], references: [id], onDelete: SetNull)
+  lovePos    Postion?      @relation(fields: [lovePosId], references: [id], onDelete: SetNull)
+
+  @@map("users")
+}
+
+model Avatar {
+  id         Int    @id @default(autoincrement())
+  avatarsUrl String @map("avatars_url")
+  users      User[]
+
+  @@map("avatars")
+}
+
+model Hero {
+  id       Int    @id
+  heroName String @map("hero_name")
+  users    User[]
+
+  @@map("heroes")
+}
+
+model Postion {
+  id    Int    @id
+  pos   String
+  users User[]
+
+  @@map("postion")
+}

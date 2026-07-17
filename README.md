@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Telegram Group Mini App
 
-## Getting Started
+Стартовый проект mini app для Telegram-группы на Next.js, React, TypeScript и Postgres.
 
-First, run the development server:
+## Что внутри
+
+- Next.js App Router + React + TypeScript
+- Tailwind CSS
+- Prisma 7 + Postgres
+- Проверка Telegram WebApp `initData` на сервере
+- API endpoint `POST /api/telegram/auth`
+- Модели для Telegram users, chats, memberships и mini app sessions
+- Локальный Postgres через `prisma dev`
+
+## Что понадобится
+
+- Node.js 22+
+- npm
+- Postgres через Prisma dev или Docker
+- Telegram bot token из BotFather
+- Публичный HTTPS URL для запуска внутри Telegram: например Vercel, Cloudflare Tunnel или ngrok
+
+## Быстрый старт
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Заполните `TELEGRAM_BOT_TOKEN` в `.env`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Поднять локальный Postgres без Docker:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run db:dev
+```
 
-## Learn More
+Эта команда запускает локальную базу и должна оставаться открытой в отдельном терминале.
 
-To learn more about Next.js, take a look at the following resources:
+Во втором терминале примените схему, сгенерируйте Prisma Client и заполните справочники:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:setup
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Запустить приложение:
 
-## Deploy on Vercel
+```bash
+npm run dev -- -p 3001
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Локально приложение откроется на `http://localhost:3001`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Если понадобится вариант через Docker, поменяйте `DATABASE_URL` в `.env` на Docker-строку из `.env.example`, затем выполните:
+
+```bash
+npm run db:setup:docker
+```
+
+## Telegram setup
+
+1. Создайте бота в BotFather и положите token в `TELEGRAM_BOT_TOKEN`.
+2. Задеплойте приложение или пробросьте локальный dev server в HTTPS URL.
+3. Укажите публичный URL mini app в настройках бота.
+4. Добавьте бота в нужную группу и открывайте mini app из Telegram, чтобы клиент получил подписанный `initData`.
+
+Официальная документация:
+
+- [Telegram Mini Apps](https://core.telegram.org/bots/webapps)
+- [Validating data received via the Mini App](https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app)
+
+## Полезные команды
+
+```bash
+npm run lint
+npm run build
+npm run db:push
+npm run db:migrate
+npm run db:studio
+npm run db:setup
+npm run db:setup:docker
+```
+
+## Важные файлы
+
+- `src/components/mini-app-shell.tsx` - клиентский экран Telegram mini app
+- `src/app/api/telegram/auth/route.ts` - серверная авторизация Telegram launch data
+- `src/lib/telegram.ts` - HMAC-проверка `initData`
+- `src/lib/prisma.ts` - Prisma Client singleton
+- `prisma/schema.prisma` - схема Postgres
