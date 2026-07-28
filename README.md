@@ -64,6 +64,14 @@ npm run db:setup:docker
 3. Укажите публичный URL mini app в настройках бота.
 4. Добавьте бота в нужную группу и открывайте mini app из Telegram, чтобы клиент получил подписанный `initData`.
 
+Если используете временный Cloudflare Tunnel, после получения нового URL обновите кнопку бота:
+
+```bash
+npm run telegram:set-menu -- https://your-current-tunnel.trycloudflare.com/registration
+```
+
+Важно: это должна быть именно WebApp-кнопка Telegram, а не обычная URL-кнопка. Иначе приложение может открыться без подписанного `initData`, и привязка пользователя к Telegram-аккаунту не сработает.
+
 Официальная документация:
 
 - [Telegram Mini Apps](https://core.telegram.org/bots/webapps)

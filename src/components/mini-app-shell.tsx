@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 import {
   type CSSProperties,
   type FormEvent,
@@ -49,6 +48,9 @@ const roleIcons: Record<number, string> = {
   4: "❦",
   5: "✚",
 };
+
+const TELEGRAM_PROFILE_CHECK_TIMEOUT_MS = 4000;
+const TELEGRAM_PROFILE_CHECK_INTERVAL_MS = 120;
 
 const stepLabelStyle: CSSProperties = {
   alignItems: "center",
@@ -143,9 +145,14 @@ function validateRegistrationForm(
   return nextErrors;
 }
 
+function getTelegramInitData() {
+  const initData = window.Telegram?.WebApp.initData;
+
+  return typeof initData === "string" ? initData.trim() : "";
+}
+
 export function MiniAppShell() {
   const router = useRouter();
-  const [scriptReady, setScriptReady] = useState(false);
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [postions, setPostions] = useState<Postion[]>([]);
   const [heroes, setHeroes] = useState<Hero[]>([]);
@@ -154,6 +161,7 @@ export function MiniAppShell() {
   const [heroQuery, setHeroQuery] = useState("");
   const [heroSearchError, setHeroSearchError] = useState<string | null>(null);
   const [isHeroSearchFocused, setIsHeroSearchFocused] = useState(false);
+  const [isExistingUserCheckLoading, setIsExistingUserCheckLoading] = useState(false);
   const [isRegistrationDataLoading, setIsRegistrationDataLoading] = useState(true);
   const [registrationDataError, setRegistrationDataError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,14 +175,81 @@ export function MiniAppShell() {
   });
 
   useEffect(() => {
-    if (!scriptReady) {
-      return;
+    let cancelled = false;
+    let hasStartedCheck = false;
+
+    function stopPolling() {
+      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
     }
 
-    const webApp = window.Telegram?.WebApp;
-    webApp?.ready();
-    webApp?.expand();
-  }, [scriptReady]);
+    async function redirectExistingTelegramUser(initData: string) {
+      setIsExistingUserCheckLoading(true);
+
+      try {
+        const response = await fetch("/api/users/by-telegram", {
+          cache: "no-store",
+          headers: { "x-telegram-init-data": initData },
+        });
+        const data = await response.json().catch(() => null);
+
+        if (response.status === 404) {
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(data?.error ?? "Failed to check Telegram profile");
+        }
+
+        const userId = data?.user?.id;
+
+        if (!cancelled && userId) {
+          window.localStorage.setItem("miniAppUserId", String(userId));
+          router.replace(`/profile/${userId}`);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsExistingUserCheckLoading(false);
+        }
+      }
+    }
+
+    function startCheckWhenInitDataIsReady() {
+      if (cancelled || hasStartedCheck) {
+        return;
+      }
+
+      const initData = getTelegramInitData();
+
+      if (!initData) {
+        return;
+      }
+
+      hasStartedCheck = true;
+      stopPolling();
+      void redirectExistingTelegramUser(initData);
+    }
+
+    const intervalId = window.setInterval(
+      startCheckWhenInitDataIsReady,
+      TELEGRAM_PROFILE_CHECK_INTERVAL_MS,
+    );
+    const timeoutId = window.setTimeout(
+      stopPolling,
+      TELEGRAM_PROFILE_CHECK_TIMEOUT_MS,
+    );
+
+    startCheckWhenInitDataIsReady();
+
+    return () => {
+      cancelled = true;
+      stopPolling();
+    };
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -377,6 +452,12 @@ export function MiniAppShell() {
           </header>
 
           <form className="space-y-6" noValidate onSubmit={handleSubmit}>
+            {isExistingUserCheckLoading && (
+              <p className="text-center text-sm font-medium text-[#93a3c3]">
+                Проверяем существующий профиль...
+              </p>
+            )}
+
             {registrationDataError && (
               <p className="registration-field-error text-center">
                 {registrationDataError}. Проверьте, что база данных запущена.
@@ -597,12 +678,16 @@ export function MiniAppShell() {
 
             <button
               className={`register-button h-[76px] w-full text-[24px] font-bold text-white ${
-                isSubmitting ? "opacity-70" : ""
+                isSubmitting || isExistingUserCheckLoading ? "opacity-70" : ""
               }`}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isExistingUserCheckLoading}
               type="submit"
             >
-              {isSubmitting ? "Регистрируем..." : "Зарегистрироваться"}
+              {isExistingUserCheckLoading
+                ? "Проверяем профиль..."
+                : isSubmitting
+                  ? "Регистрируем..."
+                  : "Зарегистрироваться"}
             </button>
             {submitError && (
               <p className="registration-field-error text-center">
@@ -653,11 +738,6 @@ export function MiniAppShell() {
           </div>
         )}
       </main>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="afterInteractive"
-        onReady={() => setScriptReady(true)}
-      />
     </>
   );
 }

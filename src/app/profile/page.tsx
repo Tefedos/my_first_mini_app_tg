@@ -2,8 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { TelegramLaunchGuard } from "@/components/telegram-launch-guard";
 
 export default function ProfileRedirectPage() {
+  return (
+    <TelegramLaunchGuard>
+      <ProfileRedirect />
+    </TelegramLaunchGuard>
+  );
+}
+
+function ProfileRedirect() {
   const router = useRouter();
 
   useEffect(() => {

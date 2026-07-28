@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Script from "next/script";
 import { useEffect, useMemo, useState } from "react";
 
 type IconName =
@@ -230,23 +229,11 @@ function formatCoins(coins: number) {
 }
 
 export function ProfilePage({ userId }: { userId: string }) {
-  const [fallbackReady, setFallbackReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileUser | null>(null);
-  const [scriptReady, setScriptReady] = useState(false);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => setFallbackReady(true), 600);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
-    if (!scriptReady && !fallbackReady) {
-      return;
-    }
-
     let cancelled = false;
 
     async function loadProfile() {
@@ -308,7 +295,7 @@ export function ProfilePage({ userId }: { userId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [fallbackReady, scriptReady, userId]);
+  }, [userId]);
 
   const profileView = useMemo(() => {
     const heroId = profile?.loveHero?.id ?? profile?.loveHeroId;
@@ -466,12 +453,6 @@ export function ProfilePage({ userId }: { userId: string }) {
           </nav>
         </div>
       </main>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="afterInteractive"
-        onError={() => setFallbackReady(true)}
-        onReady={() => setScriptReady(true)}
-      />
     </>
   );
 }

@@ -10,11 +10,15 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "db:dev": "prisma dev",
+    "db:studio": "prisma studio --port 5555",
+    "db:dev": "node scripts/prisma-dev-local.mjs",
+    "db:dev:setup": "PRISMA_DEV_AUTO_SETUP=1 node scripts/prisma-dev-local.mjs",
+    "db:dev:prisma": "prisma dev",
+    "db:dev:reset": "node scripts/prisma-dev-reset.mjs",
     "db:seed": "node scripts/seed-dota.mjs",
     "db:setup": "prisma db push && prisma generate && node scripts/seed-dota.mjs",
-    "db:setup:docker": "node scripts/setup-db.mjs"
+    "db:setup:docker": "node scripts/setup-db.mjs",
+    "telegram:set-menu": "node scripts/set-telegram-webapp-url.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
